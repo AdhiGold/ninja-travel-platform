@@ -250,8 +250,10 @@ body.workspace-active .topbar{display:none!important}
 @media(max-width:480px){#portal .account-actions{flex-wrap:wrap}#portal .account-btn{font-size:11px}}
 /* Match the supplied Partner Portal dashboard reference */
 #partner-dashboard .sidebar{width:245px;min-width:245px}
-#partner-dashboard .partner-side-brand{padding:10px 8px 22px}
-#partner-dashboard .partner-mascot{width:128px;height:154px;object-fit:contain;display:block;margin:0 auto}
+/* Partner Portal mascot placement only: centered at the top of the sidebar */
+#partner-dashboard .partner-side-brand{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:12px;box-sizing:border-box;min-height:232px;padding:20px 8px 18px;text-align:center}
+#partner-dashboard .partner-mascot{width:128px;height:154px;max-width:100%;object-fit:contain;object-position:center;display:block;margin:0 auto;flex:0 0 auto}
+#partner-dashboard .partner-side-brand span{display:block;line-height:1.3;margin:0}
 #partner-dashboard .dash-main{padding:26px 22px}
 #partner-dashboard .dash-top h1{font-size:23px}
 #partner-dashboard .stats{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
