@@ -146,6 +146,20 @@ th,td{padding:10px 8px}
  html{scroll-behavior:auto}
  *,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}
 }
+
+/* Account portal mobile layout and keyboard accessibility */
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{
+ outline:3px solid #ffcf24;
+ outline-offset:3px;
+}
+#portal .account-card{min-width:0}
+#portal .account-actions{width:100%}
+@media(max-width:600px){
+ #portal .cards{grid-template-columns:1fr;gap:12px}
+ #portal .account-card{min-height:0;padding:18px}
+ #portal .account-card p{min-height:0}
+ #portal .account-actions{justify-content:flex-start}
+}
 </style>
 </head>
 <body>
