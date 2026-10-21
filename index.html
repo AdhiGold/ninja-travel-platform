@@ -127,6 +127,25 @@ th,td{padding:10px 8px}
 #portal .account-btn:hover{transform:translateY(-1px)}
 @media(max-width:900px){#portal .account-card{padding:20px}#portal .account-btn{padding:9px 10px}}
 @media(max-width:600px){#portal .account-card{padding:17px;min-height:220px}#portal .account-actions{gap:6px}#portal .account-btn{font-size:10px;padding:8px 9px;white-space:normal}}
+
+/* Responsive navigation audit — keep all navigation reachable on tablet and mobile */
+@media(max-width:900px){
+ .topbar{gap:12px}
+ .topbar>.btn{flex-shrink:0}
+ .nav{display:none;position:absolute;top:76px;left:0;right:0;background:#fff;padding:16px 20px;box-shadow:var(--shadow);flex-direction:column;align-items:stretch;gap:0}
+ .nav.open{display:flex}
+ .nav a:nth-child(n){display:block;padding:11px 8px;border-bottom:1px solid #edf3fa}
+ .nav a:last-child{border-bottom:0}
+ .mobile-toggle{display:block;flex-shrink:0}
+}
+@media(max-width:600px){
+ .nav{top:65px;padding:14px 16px}
+ .topbar{gap:8px}
+}
+@media(prefers-reduced-motion:reduce){
+ html{scroll-behavior:auto}
+ *,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}
+}
 </style>
 </head>
 <body>
@@ -137,7 +156,7 @@ th,td{padding:10px 8px}
 <a href="#portal" data-view="portal">Masuk</a>
 </nav>
 <button class="btn small" onclick="showView('portal')">Daftar / Masuk</button>
-<button class="mobile-toggle" onclick="document.getElementById('mainNav').classList.toggle('open')" aria-label="Buka menu">☰</button>
+<button class="mobile-toggle" onclick="toggleMainNav()" aria-label="Buka menu" aria-expanded="false" aria-controls="mainNav">☰</button>
 </header>
 <main>
 <section id="home" class="view active">
@@ -223,7 +242,9 @@ function renderTours(list=tours){const node=document.getElementById('tourCards')
 function resetFilters(){renderTours(tours)}
 function searchTours(){const dest=document.getElementById('destination').value;let list=tours;if(dest!=='Semua Destinasi')list=tours.filter(t=>t.name===dest||t.country===dest||t.route.includes(dest));renderTours(list);document.getElementById('packages').scrollIntoView({behavior:'smooth'});if(!list.length)showToast('Belum ada paket demo untuk destinasi tersebut. Coba destinasi lain.')}
 function openTour(id){const t=tours.find(x=>x.id===id);if(!t)return;document.getElementById('detailName').textContent=t.name+' — '+t.duration;document.getElementById('detailDesc').textContent=t.desc+' Rute: '+t.route+'.';document.getElementById('detailPrice').textContent=money(t.price);document.getElementById('detailPhoto').style.backgroundImage='url('+t.image+')';showView('tour-detail')}
-function showView(id){document.querySelectorAll('main>.view').forEach(v=>v.classList.toggle('active',v.id===id));document.getElementById('mainNav').classList.remove('open');window.scrollTo({top:0,behavior:'smooth'});if(id==='admin-dashboard')renderAdmin();if(id==='partner-dashboard')renderPartner();if(location.hash!==('#'+id)&&id!=='home')history.replaceState(null,'','#'+id);else if(id==='home')history.replaceState(null,'','#home')}
+function closeMainNav(){const nav=document.getElementById('mainNav'),button=document.querySelector('.mobile-toggle');nav.classList.remove('open');button.setAttribute('aria-expanded','false');button.setAttribute('aria-label','Buka menu')}
+function toggleMainNav(){const nav=document.getElementById('mainNav'),button=document.querySelector('.mobile-toggle'),open=!nav.classList.contains('open');nav.classList.toggle('open',open);button.setAttribute('aria-expanded',String(open));button.setAttribute('aria-label',open?'Tutup menu':'Buka menu')}
+function showView(id){document.querySelectorAll('main>.view').forEach(v=>v.classList.toggle('active',v.id===id));closeMainNav();window.scrollTo({top:0,behavior:'smooth'});if(id==='admin-dashboard')renderAdmin();if(id==='partner-dashboard')renderPartner();if(location.hash!==('#'+id)&&id!=='home')history.replaceState(null,'','#'+id);else if(id==='home')history.replaceState(null,'','#home')}
 function showToast(text){const t=document.getElementById('toast');t.textContent=text;t.classList.add('show');clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>t.classList.remove('show'),3300)}
 function submitPartner(e){e.preventDefault();const f=new FormData(e.target);partnerRows.unshift({company:f.get('company'),contact:f.get('contact'),email:f.get('email'),phone:f.get('phone'),service:f.get('service'),status:'Pending Approval'});saveDemo(DEMO_KEYS.partners,partnerRows);e.target.reset();showView('partner-dashboard');renderAdmin();showToast('Pengajuan partner tersimpan — status Pending Approval (demo)')}
 function submitMember(e){e.preventDefault();const f=new FormData(e.target);memberRows.unshift({name:f.get('name'),email:f.get('email'),level:'Starter',status:'Active'});saveDemo(DEMO_KEYS.members,memberRows);e.target.reset();showView('member-dashboard');showToast('Registrasi member demo berhasil dan tersimpan di browser ini.')}
@@ -248,6 +269,7 @@ else if(activePartner==='bookings'){area.innerHTML='<div class="panel"><h3>Dafta
 else if(activePartner==='customers'){area.innerHTML='<div class="panel"><h3>Pelanggan Partner</h3>'+memberTable(memberRows)+'</div>'}
 else{area.innerHTML='<div class="stats"><div class="stat"><small>Biaya Dasar</small><h2>'+money(billingBase)+'</h2></div><div class="stat"><small>Tarif/Penumpang</small><h2>'+money(billingRate)+'</h2></div><div class="stat"><small>Penumpang periode ini</small><h2>48</h2></div><div class="stat"><small>Total Estimasi</small><h2>'+money(billingBase+billingRate*48)+'</h2></div></div><div class="panel"><h3>Rincian Estimasi Tagihan</h3><p>Biaya dasar: '+money(billingBase)+'</p><p>Penggunaan: 48 penumpang × '+money(billingRate)+' = '+money(48*billingRate)+'</p><h2>'+money(billingBase+48*billingRate)+'</h2><div class="alert">Nominal ini adalah simulasi. Tidak ada invoice atau pembayaran nyata yang dibuat.</div></div>'}}
 function tourTable(rows){return '<table><thead><tr><th>Paket</th><th>Durasi</th><th>Harga/Orang</th><th>Status</th><th>Aksi</th></tr></thead><tbody>'+rows.map(t=>'<tr><td>'+t.name+'</td><td>'+t.duration+'</td><td>'+money(t.price)+'</td><td><span class="status active">Published</span></td><td><button class="btn outline small" onclick="openTour(\''+t.id+'\')">Preview</button></td></tr>').join('')+'</tbody></table>'}
+document.querySelectorAll('#mainNav a').forEach(a=>a.addEventListener('click',closeMainNav));
 document.querySelectorAll('[data-search]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-search]').forEach(x=>x.classList.toggle('active',x===b));searchType=b.dataset.search;showToast('Mode pencarian: '+searchType+' (demo)')}));
 document.querySelectorAll('[data-admin]').forEach(b=>b.addEventListener('click',()=>{activeAdmin=b.dataset.admin;renderAdmin()}));
 document.querySelectorAll('[data-partner]').forEach(b=>b.addEventListener('click',()=>{activePartner=b.dataset.partner;renderPartner()}));
