@@ -241,6 +241,24 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 body.workspace-active .topbar{display:none!important}
 .partner-side-brand{padding:10px 8px 22px}
 .partner-mascot{width:118px;height:154px;object-fit:contain;background:transparent;display:block;margin:0 auto;filter:none}
+
+/* Account card actions: side-by-side and no duplicated module names */
+#portal .account-actions{display:flex;align-items:center;justify-content:flex-start;gap:7px;flex-wrap:nowrap;margin-top:auto}
+#portal .account-btn{min-width:0;min-height:34px;padding:8px 11px;font-size:10px;line-height:1.2;white-space:nowrap}
+#portal .account-more,#portal .account-dropdown{display:none!important}
+@media(max-width:1250px){#portal .account-btn{padding:8px 9px;font-size:9.5px}}
+@media(max-width:480px){#portal .account-actions{flex-wrap:wrap}#portal .account-btn{font-size:11px}}
+/* Match the supplied Partner Portal dashboard reference */
+#partner-dashboard .sidebar{width:245px;min-width:245px}
+#partner-dashboard .partner-side-brand{padding:10px 8px 22px}
+#partner-dashboard .partner-mascot{width:128px;height:154px;object-fit:contain;display:block;margin:0 auto}
+#partner-dashboard .dash-main{padding:26px 22px}
+#partner-dashboard .dash-top h1{font-size:23px}
+#partner-dashboard .stats{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+#partner-dashboard .dash-grid{grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr);gap:15px}
+@media(max-width:1000px){#partner-dashboard .stats{grid-template-columns:repeat(2,minmax(0,1fr))}#partner-dashboard .dash-grid{grid-template-columns:1fr}}
+@media(max-width:700px){#partner-dashboard .sidebar{width:210px;min-width:210px}#partner-dashboard .dash-main{padding:18px 14px}#partner-dashboard .dash-top{align-items:flex-start}}
+@media(max-width:520px){#partner-dashboard .app-shell{display:block}#partner-dashboard .sidebar{width:100%;min-width:0;height:auto;position:relative}#partner-dashboard .dash-main{padding:16px 12px}#partner-dashboard .stats{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -278,8 +296,8 @@ body.workspace-active .topbar{display:none!important}
 </section>
 <section id="portal" class="view"><div class="container section"><div class="section-head"><div><div class="eyebrow">NINJATRAVEL ACCOUNT</div><h2>Selamat datang di NinjaTravel</h2><p>Pilih area yang ingin Anda akses.</p></div></div><div class="cards account-grid">
 <div class="tour-card account-card"><div class="account-card-icon">🛡️</div><h3>Core Admin</h3><p>Kelola platform, partner, konten, member, dan billing.</p><div class="account-actions"><button class="btn account-btn" onclick="showView('admin-login')">Login Admin <span aria-hidden="true">→</span></button></div></div>
-<div class="tour-card account-card"><div class="account-card-icon">🏢</div><h3>Travel Partner</h3><p>Daftarkan usaha travel dan kelola produk perjalanan.</p><div class="account-actions"><button class="btn account-btn" onclick="showView('partner-login')">Login Partner</button><details class="account-more"><summary class="btn outline account-btn">Lainnya <span aria-hidden="true">⌄</span></summary><div class="account-dropdown"><button type="button" onclick="showView('partner-register')">Daftar Partner</button></div></details></div></div>
-<div class="tour-card account-card"><div class="account-card-icon">🎒</div><h3>Member</h3><p>Akses profil, booking, dan promo khusus member.</p><div class="account-actions"><button class="btn account-btn" onclick="showView('member-login')">Login Member</button><details class="account-more"><summary class="btn outline account-btn">Lainnya <span aria-hidden="true">⌄</span></summary><div class="account-dropdown"><button type="button" onclick="showView('member-register')">Daftar Member</button></div></details></div></div>
+<div class="tour-card account-card"><div class="account-card-icon">🏢</div><h3>Travel Partner</h3><p>Daftarkan usaha travel dan kelola produk perjalanan.</p><div class="account-actions"><button class="btn account-btn" onclick="showView('partner-login')">Login</button><button class="btn outline account-btn" onclick="showView('partner-register')">Register</button></div></div>
+<div class="tour-card account-card"><div class="account-card-icon">🎒</div><h3>Member</h3><p>Akses profil, booking, dan promo khusus member.</p><div class="account-actions"><button class="btn account-btn" onclick="showView('member-login')">Login</button><button class="btn outline account-btn" onclick="showView('member-register')">Register</button></div></div>
 <div class="tour-card account-card"><div class="account-card-icon">🧾</div><h3>Cashier / POS</h3><p>Transaksi walk-in, pembayaran, validasi dokumen, dan riwayat counter.</p><div class="account-actions"><button class="btn account-btn" onclick="showView('pos-login')">Login Cashier / POS <span aria-hidden="true">→</span></button></div></div>
 <div class="tour-card account-card"><div class="account-card-icon">🌏</div><h3>Jelajahi Paket</h3><p>Lihat berbagai paket wisata pilihan NinjaTravel.</p><div class="account-actions"><button class="btn outline account-btn" onclick="showView('home')">Jelajahi Paket <span aria-hidden="true">→</span></button></div></div>
 </div></div></section>
