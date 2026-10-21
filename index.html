@@ -306,7 +306,7 @@ function searchTours(){if(!['Paket Tour','Paket Liburan'].includes(searchType)){
 function openTour(id){const t=tours.find(x=>x.id===id);if(!t)return;document.getElementById('detailName').textContent=t.name+' — '+t.duration;document.getElementById('detailDesc').textContent=t.desc+' Rute: '+t.route+'.';document.getElementById('detailPrice').textContent=money(t.price);document.getElementById('detailPhoto').style.backgroundImage='url('+t.image+')';showView('tour-detail')}
 function closeMainNav(){const nav=document.getElementById('mainNav'),button=document.querySelector('.mobile-toggle');nav.classList.remove('open');button.setAttribute('aria-expanded','false');button.setAttribute('aria-label','Buka menu')}
 function toggleMainNav(){const nav=document.getElementById('mainNav'),button=document.querySelector('.mobile-toggle'),open=!nav.classList.contains('open');nav.classList.toggle('open',open);button.setAttribute('aria-expanded',String(open));button.setAttribute('aria-label',open?'Tutup menu':'Buka menu')}
-function showView(id){document.querySelectorAll('main>.view').forEach(v=>v.classList.toggle('active',v.id===id));closeMainNav();window.scrollTo({top:0,behavior:'smooth'});if(id==='admin-dashboard')renderAdmin();if(id==='partner-dashboard')renderPartner();if(location.hash!==('#'+id)&&id!=='home')history.replaceState(null,'','#'+id);else if(id==='home')history.replaceState(null,'','#home')}
+function showView(id){document.querySelectorAll('main>.view').forEach(v=>v.classList.toggle('active',v.id===id));closeMainNav();window.scrollTo({top:0,behavior:'smooth'});if(id==='admin-dashboard')renderAdmin();if(id==='partner-dashboard')renderPartner();if(id==='pos-dashboard')renderPOS();if(location.hash!==('#'+id)&&id!=='home')history.replaceState(null,'','#'+id);else if(id==='home')history.replaceState(null,'','#home')}
 function showToast(text){const t=document.getElementById('toast');t.textContent=text;t.classList.add('show');clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>t.classList.remove('show'),3300)}
 function submitPartner(e){e.preventDefault();const f=new FormData(e.target);partnerRows.unshift({company:f.get('company'),contact:f.get('contact'),email:f.get('email'),phone:f.get('phone'),service:f.get('service'),status:'Pending Approval'});saveDemo(DEMO_KEYS.partners,partnerRows);e.target.reset();showView('partner-pending');showToast('Pengajuan tersimpan dan menunggu persetujuan Core Admin (demo)')}
 function submitMember(e){e.preventDefault();const f=new FormData(e.target);memberRows.unshift({name:f.get('name'),email:f.get('email'),level:'Starter',status:'Active'});saveDemo(DEMO_KEYS.members,memberRows);e.target.reset();showView('member-dashboard');showToast('Registrasi member demo berhasil dan tersimpan di browser ini.')}
@@ -332,9 +332,67 @@ else if(activePartner==='customers'){area.innerHTML='<div class="panel"><h3>Pela
 else{area.innerHTML='<div class="stats"><div class="stat"><small>Biaya Dasar</small><h2>'+money(billingBase)+'</h2></div><div class="stat"><small>Tarif/Penumpang</small><h2>'+money(billingRate)+'</h2></div><div class="stat"><small>Penumpang periode ini</small><h2>48</h2></div><div class="stat"><small>Total Estimasi</small><h2>'+money(billingBase+billingRate*48)+'</h2></div></div><div class="panel"><h3>Rincian Estimasi Tagihan</h3><p>Biaya dasar: '+money(billingBase)+'</p><p>Penggunaan: 48 penumpang × '+money(billingRate)+' = '+money(48*billingRate)+'</p><h2>'+money(billingBase+48*billingRate)+'</h2><div class="alert">Nominal ini adalah simulasi. Tidak ada invoice atau pembayaran nyata yang dibuat.</div></div>'}}
 function tourTable(rows){return '<table><thead><tr><th>Paket</th><th>Durasi</th><th>Harga/Orang</th><th>Status</th><th>Aksi</th></tr></thead><tbody>'+rows.map(t=>'<tr><td>'+t.name+'</td><td>'+t.duration+'</td><td>'+money(t.price)+'</td><td><span class="status active">Published</span></td><td><button class="btn outline small" onclick="openTour(\''+t.id+'\')">Preview</button></td></tr>').join('')+'</tbody></table>'}
 document.querySelectorAll('#mainNav a').forEach(a=>a.addEventListener('click',closeMainNav));
+
+const DEMO_POS_KEY='ninjatravel_demo_pos_transactions_v1';
+const seedPOSTransactions=[
+{id:'POS-00041',booking:'NT-00128',customer:'Nadia Putri',service:'Bali 4D3N',amount:5998000,method:'Transfer Bank',status:'Paid',documents:'Verified',cashier:'Kasir Demo',time:'09:42'},
+{id:'POS-00042',booking:'NT-00129',customer:'Rizky Aditya',service:'Japan 6D5N',amount:14990000,method:'QRIS',status:'Pending',documents:'Needs Review',cashier:'Kasir Demo',time:'10:18'},
+{id:'POS-00043',booking:'NT-00130',customer:'Salsa Maharani',service:'China 5D4N',amount:12290000,method:'Belum dibayar',status:'Pending',documents:'Verified',cashier:'Kasir Demo',time:'10:36'}
+];
+let posRows=readDemo(DEMO_POS_KEY,seedPOSTransactions),activePOS='overview';
+function setPOSView(view){activePOS=view;renderPOS()}
+function renderPOS(){
+ document.querySelectorAll('[data-pos]').forEach(b=>b.classList.toggle('active',b.dataset.pos===activePOS));
+ const titles={overview:'Ringkasan Cashier / POS',transactions:'Transaksi Walk-in',validation:'Validasi Dokumen',history:'Riwayat Transaksi',reports:'Rekap Kasir'};
+ document.getElementById('posHeading').textContent=titles[activePOS]||'Cashier / POS';
+ const area=document.getElementById('posContent');
+ const paid=posRows.filter(r=>r.status==='Paid'),pending=posRows.filter(r=>r.status!=='Paid');
+ const revenue=paid.reduce((sum,r)=>sum+r.amount,0);
+ const kpis='<div class="pos-kpi"><div class="stat"><small>Transaksi Hari Ini</small><h2>'+posRows.length+'</h2><span class="up">Data demo</span></div><div class="stat"><small>Pembayaran Selesai</small><h2>'+paid.length+'</h2><span class="up">Tercatat</span></div><div class="stat"><small>Total Pembayaran</small><h2>'+money(revenue)+'</h2><span class="pos-note">Simulasi</span></div></div>';
+ if(activePOS==='overview'){
+  area.innerHTML=kpis+'<div class="dash-grid"><div class="panel"><h3>Aktivitas Transaksi Terbaru</h3>'+posTable(posRows.slice(0,4))+'<button class="btn small" onclick="setPOSView(\\'history\\')">Lihat Riwayat →</button></div><div class="panel"><h3>Akses Cepat</h3><p class="pos-note">Gunakan Cashier/POS untuk melayani transaksi langsung di counter, memeriksa booking/invoice, mencatat metode pembayaran, dan memvalidasi dokumen.</p><div class="pos-actions"><button class="btn" onclick="setPOSView(\\'transactions\\')">+ Transaksi Walk-in</button><button class="btn outline" onclick="setPOSView(\\'validation\\')">Validasi Dokumen</button></div><div class="alert">Seluruh data dan status pada layar ini merupakan simulasi browser, bukan transaksi atau pembayaran nyata.</div></div></div>';
+ }else if(activePOS==='transactions'){
+  area.innerHTML='<div class="panel"><h3>Cari Booking / Invoice</h3><p class="pos-note">Cari menggunakan kode booking atau nama pelanggan demo.</p><form class="pos-search" onsubmit="searchPOS(event)"><div><label for="posSearchQuery">Kode Booking / Nama Pelanggan</label><input id="posSearchQuery" placeholder="Contoh: NT-00128 atau Nadia Putri" required></div><button class="btn" type="submit">Cari Data →</button></form><div id="posSearchResult" class="pos-result"></div></div><div class="panel" style="margin-top:15px"><h3>Transaksi yang Menunggu Pembayaran</h3>'+posTable(pending)+'</div>';
+ }else if(activePOS==='validation'){
+  area.innerHTML='<div class="panel"><h3>Validasi Dokumen Pelanggan</h3><p class="pos-note">Pilih transaksi untuk menandai dokumen demo telah diperiksa. Validasi produksi memerlukan aturan dokumen dan audit yang disepakati.</p>'+posTable(posRows,'validation')+'</div>';
+ }else if(activePOS==='history'){
+  area.innerHTML='<div class="panel"><div class="toolbar"><span>Riwayat pembayaran dan layanan counter.</span><input aria-label="Cari riwayat transaksi" placeholder="Cari booking / pelanggan..." oninput="filterTable(this,\\'posHistoryTable\\')"></div>'+posTable(posRows,'history')+'</div>';
+ }else{
+  area.innerHTML=kpis+'<div class="panel"><h3>Rekap Transaksi per Kasir</h3><p class="pos-note">Ringkasan berdasarkan data demo di browser ini.</p>'+posTable(posRows)+'<div class="pos-receipt"><h3>Ringkasan Hari Ini</h3><p>Transaksi: <b>'+posRows.length+'</b></p><p>Pembayaran berhasil: <b>'+paid.length+'</b></p><p>Menunggu pembayaran: <b>'+pending.length+'</b></p><p>Total pembayaran tercatat: <b>'+money(revenue)+'</b></p><button class="btn outline small" onclick="showToast(\\'Ekspor rekap tersedia pada versi backend berikutnya\\')">Ekspor Rekap (Demo)</button></div></div>';
+ }
+}
+function posTable(rows,mode=''){
+ if(!rows.length)return '<p class="pos-note">Belum ada transaksi.</p>';
+ return '<div class="table-wrap"><table'+(mode==='history'?' id="posHistoryTable"':'')+'><thead><tr><th>Kode POS</th><th>Booking</th><th>Pelanggan</th><th>Jumlah</th><th>Pembayaran</th><th>Dokumen</th><th>Status</th>'+(mode?'<th>Aksi</th>':'')+'</tr></thead><tbody>'+rows.map(r=>'<tr><td>'+escapeHtml(r.id)+'</td><td>'+escapeHtml(r.booking)+'</td><td>'+escapeHtml(r.customer)+'</td><td>'+money(r.amount)+'</td><td>'+escapeHtml(r.method)+'</td><td><span class="pos-status '+(r.documents==='Verified'?'verified':'pending')+'">'+escapeHtml(r.documents)+'</span></td><td><span class="pos-status '+(r.status==='Paid'?'paid':'pending')+'">'+escapeHtml(r.status)+'</span></td>'+(mode?'<td>'+(mode==='validation'?'<button class="btn outline small" onclick="validatePOSDocument(\\''+r.id+'\\')">'+(r.documents==='Verified'?'Periksa Ulang':'Validasi')+'</button>':'<button class="btn outline small" onclick="viewPOSReceipt(\\''+r.id+'\\')">Detail</button>')+'</td>':'')+'</tr>').join('')+'</tbody></table></div>';
+}
+function searchPOS(e){
+ e.preventDefault();
+ const q=document.getElementById('posSearchQuery').value.trim().toLowerCase();
+ const r=posRows.find(x=>x.booking.toLowerCase()===q||x.customer.toLowerCase().includes(q)||x.id.toLowerCase()===q);
+ const box=document.getElementById('posSearchResult');
+ if(!r){box.innerHTML='<div class="alert">Data tidak ditemukan dalam transaksi demo. Coba NT-00128, NT-00129, NT-00130, Nadia Putri, Rizky Aditya, atau Salsa Maharani.</div>';return}
+ box.innerHTML='<div class="panel"><h3>Detail Transaksi</h3><p><b>'+escapeHtml(r.customer)+'</b> · '+escapeHtml(r.booking)+'</p><p>'+escapeHtml(r.service)+' · <b>'+money(r.amount)+'</b></p><p>Status: <span class="pos-status '+(r.status==='Paid'?'paid':'pending')+'">'+escapeHtml(r.status)+'</span></p><div class="form-group"><label for="posPaymentMethod">Metode Pembayaran</label><select id="posPaymentMethod"><option>Cash</option><option>Transfer Bank</option><option>QRIS</option><option>Kartu Debit/Kredit</option></select></div><div class="pos-actions">'+(r.status==='Paid'?'<button class="btn outline" onclick="viewPOSReceipt(\\''+r.id+'\\')">Lihat Bukti Transaksi</button>':'<button class="btn" onclick="recordPOSPayment(\\''+r.id+'\\')">Catat Pembayaran (Demo)</button>')+'<button class="btn outline" onclick="setPOSView(\\'validation\\')">Validasi Dokumen</button></div></div>';
+}
+function recordPOSPayment(id){
+ const row=posRows.find(r=>r.id===id);if(!row)return;
+ if(row.status==='Paid'){showToast('Pembayaran sudah tercatat pada data demo');return}
+ row.method=document.getElementById('posPaymentMethod')?.value||'Cash';row.status='Paid';row.cashier='Kasir Demo';
+ row.time=new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+ saveDemo(DEMO_POS_KEY,posRows);renderPOS();showToast('Pembayaran dicatat pada simulasi POS, bukan transaksi nyata.');viewPOSReceipt(id);
+}
+function validatePOSDocument(id){const row=posRows.find(r=>r.id===id);if(!row)return;row.documents='Verified';saveDemo(DEMO_POS_KEY,posRows);renderPOS();showToast('Dokumen ditandai terverifikasi pada data demo')}
+function viewPOSReceipt(id){
+ const row=posRows.find(r=>r.id===id);if(!row)return;
+ const area=document.getElementById('posContent'),old=document.getElementById('posReceiptPreview');if(old)old.remove();
+ const box=document.createElement('div');box.id='posReceiptPreview';box.className='pos-receipt';
+ box.innerHTML='<h3>Bukti Transaksi Demo</h3><p>Kode: <b>'+escapeHtml(row.id)+'</b></p><p>Booking: '+escapeHtml(row.booking)+'</p><p>Pelanggan: '+escapeHtml(row.customer)+'</p><p>Jumlah: <b>'+money(row.amount)+'</b></p><p>Metode: '+escapeHtml(row.method)+'</p><p>Status: '+escapeHtml(row.status)+'</p><div class="pos-actions"><button class="btn small" onclick="window.print()">Cetak / Simpan PDF</button><button class="btn outline small" onclick="document.getElementById(\\'posReceiptPreview\\').remove()">Tutup</button></div>';
+ area.appendChild(box);box.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
 document.querySelectorAll('[data-search]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-search]').forEach(x=>x.classList.toggle('active',x===b));searchType=b.dataset.search;showToast('Mode pencarian: '+searchType+' (demo)')}));
 document.querySelectorAll('[data-admin]').forEach(b=>b.addEventListener('click',()=>{activeAdmin=b.dataset.admin;renderAdmin()}));
 document.querySelectorAll('[data-partner]').forEach(b=>b.addEventListener('click',()=>{activePartner=b.dataset.partner;renderPartner()}));
+document.querySelectorAll('[data-pos]').forEach(b=>b.addEventListener('click',()=>setPOSView(b.dataset.pos)));
 window.addEventListener('hashchange',()=>{const id=location.hash.slice(1);if(document.getElementById(id)?.classList.contains('view'))showView(id)});
 renderTours();
 updateFilterPriceLabel();
