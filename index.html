@@ -386,11 +386,87 @@ function applyCms(){const title=document.getElementById('cmsTitle').value,subtit
 function filterTable(input,id){const table=document.getElementById(id);if(!table)return;const q=input.value.toLowerCase();table.querySelectorAll('tbody tr').forEach(tr=>tr.style.display=tr.innerText.toLowerCase().includes(q)?'':'none')}
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function escapeJs(s){return String(s??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")}
-function renderPartner(){document.querySelectorAll('[data-partner]').forEach(b=>b.classList.toggle('active',b.dataset.partner===activePartner));const heading={overview:'Partner Dashboard',packages:'Paket Tour Saya',bookings:'Booking Management',customers:'Pelanggan',billing:'Tagihan SaaS'};document.getElementById('partnerHeading').textContent=heading[activePartner];const area=document.getElementById('partnerContent');if(activePartner==='overview'){area.innerHTML='<div class="stats"><div class="stat"><small>Total Booking</small><h2>48</h2><span class="up">↑ 12% bulan ini</span></div><div class="stat"><small>Penjualan Demo</small><h2>'+money(96500000)+'</h2><span class="up">Simulasi</span></div><div class="stat"><small>Pelanggan</small><h2>32</h2><span class="up">Terdaftar</span></div><div class="stat"><small>Estimasi SaaS</small><h2>'+money(billingBase+billingRate*48)+'</h2><span>Dasar + usage</span></div></div><div class="dash-grid"><div class="panel"><h3>Paket Terlaris</h3>'+tourTable(tours.slice(0,3))+'</div><div class="panel"><h3>Aktivitas Partner</h3><p>✅ Profil partner terverifikasi (data demo)</p><p>📦 8 paket dipublikasikan</p><p>🧾 Tagihan periode berjalan tersedia</p><button class="btn" onclick="showToast(\'Semua aktivitas adalah data contoh\')">Lihat Ringkasan</button></div></div>'}
-else if(activePartner==='packages'){area.innerHTML='<div class="toolbar"><span>Kelola paket perjalanan partner.</span><button class="btn small" onclick="showToast(\'Form tambah paket akan disimpan dalam versi backend\')">+ Tambah Paket</button></div><div class="panel table-wrap">'+tourTable(tours)+'</div><div class="alert">Aksi tambah/edit pada halaman ini adalah placeholder presentasi. Data katalog adalah contoh.</div>'}
-else if(activePartner==='bookings'){area.innerHTML='<div class="panel"><h3>Daftar Booking (Simulasi)</h3><div class="table-wrap"><table><thead><tr><th>Kode</th><th>Paket</th><th>Pelanggan</th><th>Penumpang</th><th>Status</th></tr></thead><tbody><tr><td>NT-00128</td><td>Bali 4D3N</td><td>Nadia Putri</td><td>2</td><td><span class="status paid">Confirmed</span></td></tr><tr><td>NT-00127</td><td>Japan 6D5N</td><td>Rizky Aditya</td><td>4</td><td><span class="status paid">Paid</span></td></tr><tr><td>NT-00126</td><td>China 5D4N</td><td>Salsa Maharani</td><td>3</td><td><span class="status">Pending</span></td></tr></tbody></table></div></div>'}
-else if(activePartner==='customers'){area.innerHTML='<div class="panel"><h3>Pelanggan Partner</h3>'+memberTable(memberRows)+'</div>'}
-else{area.innerHTML='<div class="stats"><div class="stat"><small>Biaya Dasar</small><h2>'+money(billingBase)+'</h2></div><div class="stat"><small>Tarif/Penumpang</small><h2>'+money(billingRate)+'</h2></div><div class="stat"><small>Penumpang periode ini</small><h2>48</h2></div><div class="stat"><small>Total Estimasi</small><h2>'+money(billingBase+billingRate*48)+'</h2></div></div><div class="panel"><h3>Rincian Estimasi Tagihan</h3><p>Biaya dasar: '+money(billingBase)+'</p><p>Penggunaan: 48 penumpang × '+money(billingRate)+' = '+money(48*billingRate)+'</p><h2>'+money(billingBase+48*billingRate)+'</h2><div class="alert">Nominal ini adalah simulasi. Tidak ada invoice atau pembayaran nyata yang dibuat.</div></div>'}}
+const PARTNER_PACKAGE_KEY='ninjatravel_partner_packages_v1';
+const PARTNER_BOOKING_KEY='ninjatravel_partner_bookings_v1';
+let partnerPackages=readDemo(PARTNER_PACKAGE_KEY,tours.map(t=>({...t,status:'Published',capacity:20,departure:'2026-12-12'})));
+let partnerBookings=readDemo(PARTNER_BOOKING_KEY,[
+{id:'NT-00128',packageId:'bali',packageName:'Bali',duration:'4D 3N',customer:'Nadia Putri',email:'nadia@example.com',pax:2,total:5998000,status:'Confirmed',payment:'Paid',departure:'2026-12-12'},
+{id:'NT-00127',packageId:'japan',packageName:'Jepang',duration:'6D 5N',customer:'Rizky Aditya',email:'rizky@example.com',pax:4,total:59960000,status:'Confirmed',payment:'Paid',departure:'2027-02-10'},
+{id:'NT-00126',packageId:'china',packageName:'China',duration:'5D 4N',customer:'Salsa Maharani',email:'salsa@example.com',pax:3,total:36870000,status:'Pending',payment:'Pending',departure:'2027-01-15'}
+]);
+let packageEditingId=null;
+function persistPartnerPackages(){return saveDemo(PARTNER_PACKAGE_KEY,partnerPackages)}
+function persistPartnerBookings(){return saveDemo(PARTNER_BOOKING_KEY,partnerBookings)}
+function partnerStatus(status){const cls=({Published:'active',Draft:'',Archived:'rejected',Confirmed:'paid',Pending:'',Cancelled:'rejected',Paid:'paid',Unpaid:''})[status]||'';return '<span class="status '+cls+'">'+escapeHtml(status)+'</span>'}
+function renderPartner(){
+ document.querySelectorAll('[data-partner]').forEach(b=>b.classList.toggle('active',b.dataset.partner===activePartner));
+ const heading={overview:'Partner Dashboard',packages:'Paket Tour Saya',bookings:'Booking Management',customers:'Pelanggan',billing:'Tagihan SaaS'};
+ document.getElementById('partnerHeading').textContent=heading[activePartner];
+ const area=document.getElementById('partnerContent');
+ const validBookings=partnerBookings.filter(b=>b.status!=='Cancelled');
+ const pax=validBookings.reduce((n,b)=>n+Number(b.pax||0),0);
+ const sales=validBookings.filter(b=>b.payment==='Paid').reduce((n,b)=>n+Number(b.total||0),0);
+ const customers=[...new Map(validBookings.map(b=>[b.email||b.customer,{name:b.customer,email:b.email||'-',bookings:validBookings.filter(x=>(x.email||x.customer)===(b.email||b.customer)).length,pax:validBookings.filter(x=>(x.email||x.customer)===(b.email||b.customer)).reduce((n,x)=>n+Number(x.pax||0),0)}])).values()];
+ if(activePartner==='overview'){
+  area.innerHTML='<div class="stats"><div class="stat"><small>Total Booking</small><h2>'+validBookings.length+'</h2><span class="up">Data demo tersimpan</span></div><div class="stat"><small>Penjualan Dibayar</small><h2>'+money(sales)+'</h2><span class="up">Berdasarkan booking Paid</span></div><div class="stat"><small>Pelanggan</small><h2>'+customers.length+'</h2><span class="up">Dari booking partner</span></div><div class="stat"><small>Estimasi SaaS</small><h2>'+money(billingBase+billingRate*pax)+'</h2><span>Dasar + '+pax+' penumpang</span></div></div><div class="dash-grid"><div class="panel"><h3>Paket Saya</h3>'+partnerPackageTable(partnerPackages.slice(0,4))+'<button class="btn outline small" onclick="setPartnerView(\'packages\')">Kelola Semua Paket →</button></div><div class="panel"><h3>Aktivitas Partner</h3><p>📦 '+partnerPackages.filter(p=>p.status==='Published').length+' paket aktif</p><p>🧾 '+partnerBookings.filter(b=>b.payment==='Pending').length+' booking menunggu pembayaran</p><p>👥 '+customers.length+' pelanggan dari booking</p><button class="btn" onclick="setPartnerView(\'bookings\')">Buka Booking →</button></div></div>';
+ }else if(activePartner==='packages'){
+  area.innerHTML='<div class="toolbar"><span>Kelola paket, harga, kapasitas, dan status publikasi.</span><button class="btn small" onclick="showPartnerPackageForm()">+ Tambah Paket</button></div><div id="partnerPackageFormHost"></div><div class="panel table-wrap">'+partnerPackageTable(partnerPackages)+'</div><div class="alert">Data paket disimpan di browser ini. Perubahan belum dipublikasikan ke website umum atau database server.</div>';
+ }else if(activePartner==='bookings'){
+  area.innerHTML='<div class="panel"><div class="toolbar"><div><h3>Booking Management</h3><span class="pos-note">Cari booking, periksa pembayaran, dan ubah status demo.</span></div><input aria-label="Cari booking" placeholder="Cari kode / nama pelanggan..." oninput="filterTable(this,\'partnerBookingsTable\')"></div><div class="table-wrap">'+partnerBookingTable(partnerBookings)+'</div></div><div class="alert">Status dan pembayaran adalah simulasi. Tidak ada transaksi atau refund nyata.</div>';
+ }else if(activePartner==='customers'){
+  area.innerHTML='<div class="panel"><div class="toolbar"><div><h3>Pelanggan Partner</h3><span class="pos-note">Pelanggan dihitung dari booking milik partner.</span></div><input aria-label="Cari pelanggan" placeholder="Cari nama / email..." oninput="filterTable(this,\'partnerCustomersTable\')"></div><div class="table-wrap"><table id="partnerCustomersTable"><thead><tr><th>Nama</th><th>Email</th><th>Booking</th><th>Total Penumpang</th></tr></thead><tbody>'+customers.map(c=>'<tr><td>'+escapeHtml(c.name)+'</td><td>'+escapeHtml(c.email)+'</td><td>'+c.bookings+'</td><td>'+c.pax+'</td></tr>').join('')+'</tbody></table></div></div>';
+ }else{
+  const periodPax=partnerBookings.filter(b=>b.status!=='Cancelled').reduce((n,b)=>n+Number(b.pax||0),0);
+  const usage=billingRate*periodPax,total=billingBase+usage;
+  area.innerHTML='<div class="stats"><div class="stat"><small>Biaya Dasar / Bulan</small><h2>'+money(billingBase)+'</h2></div><div class="stat"><small>Tarif / Penumpang</small><h2>'+money(billingRate)+'</h2></div><div class="stat"><small>Penumpang Tertagih Demo</small><h2>'+periodPax+'</h2></div><div class="stat"><small>Total Estimasi</small><h2>'+money(total)+'</h2></div></div><div class="panel"><h3>Rincian Estimasi Tagihan</h3><p>Periode: <b>'+new Date().toLocaleDateString("id-ID",{month:"long",year:"numeric"})+'</b></p><p>Biaya dasar: '+money(billingBase)+'</p><p>Penggunaan: '+periodPax+' penumpang × '+money(billingRate)+' = '+money(usage)+'</p><divider></divider><h2>'+money(total)+'</h2><button class="btn" onclick="previewPartnerInvoice()">Lihat Invoice Demo</button><div id="partnerInvoicePreview"></div><div class="alert">Estimasi berdasarkan booking demo yang tidak dibatalkan. Bukan invoice pajak dan tidak ada pembayaran nyata.</div></div>';
+ }
+}
+function setPartnerView(view){activePartner=view;renderPartner()}
+function partnerPackageTable(rows){
+ if(!rows.length)return '<p>Belum ada paket. Pilih “Tambah Paket” untuk membuat data demo.</p>';
+ return '<table><thead><tr><th>Nama Paket</th><th>Durasi</th><th>Harga/Orang</th><th>Kapasitas</th><th>Keberangkatan</th><th>Status</th><th>Aksi</th></tr></thead><tbody>'+rows.map(p=>'<tr><td>'+escapeHtml(p.name)+'</td><td>'+escapeHtml(p.duration)+'</td><td>'+money(p.price)+'</td><td>'+Number(p.capacity||0)+'</td><td>'+escapeHtml(p.departure||'-')+'</td><td>'+partnerStatus(p.status||'Draft')+'</td><td><button class="btn outline small" onclick="editPartnerPackage(\''+escapeJs(p.id)+'\')">Edit</button> <button class="btn outline small" onclick="togglePartnerPackageStatus(\''+escapeJs(p.id)+'\')">'+(p.status==='Published'?'Arsipkan':'Publikasikan')+'</button></td></tr>').join('')+'</tbody></table>';
+}
+function showPartnerPackageForm(id){
+ packageEditingId=id||null;
+ const p=id?partnerPackages.find(x=>x.id===id):null;
+ const host=document.getElementById('partnerPackageFormHost');if(!host)return;
+ host.innerHTML='<div class="panel" style="margin-bottom:15px"><h3>'+(p?'Edit Paket':'Tambah Paket Baru')+'</h3><form onsubmit="savePartnerPackage(event)"><div class="form-grid"><div class="form-group"><label for="ppName">Nama paket *</label><input id="ppName" required maxlength="80" value="'+escapeHtml(p?.name||'')+'"></div><div class="form-group"><label for="ppDuration">Durasi *</label><input id="ppDuration" required maxlength="30" placeholder="4D 3N" value="'+escapeHtml(p?.duration||'')+'"></div><div class="form-group"><label for="ppPrice">Harga per orang (IDR) *</label><input id="ppPrice" type="number" min="1" step="1000" required value="'+Number(p?.price||0)+'"></div><div class="form-group"><label for="ppCapacity">Kapasitas peserta *</label><input id="ppCapacity" type="number" min="1" max="10000" required value="'+Number(p?.capacity||20)+'"></div><div class="form-group"><label for="ppDeparture">Tanggal keberangkatan *</label><input id="ppDeparture" type="date" required value="'+escapeHtml(p?.departure||'')+'"></div><div class="form-group"><label for="ppStatus">Status</label><select id="ppStatus"><option '+((p?.status||'Draft')==='Draft'?'selected':'')+'>Draft</option><option '+(p?.status==='Published'?'selected':'')+'>Published</option></select></div><div class="form-group full"><label for="ppRoute">Rute / highlight *</label><input id="ppRoute" required maxlength="160" value="'+escapeHtml(p?.route||'')+'"></div></div><div class="pos-actions"><button class="btn" type="submit">Simpan Paket</button><button class="btn outline" type="button" onclick="cancelPartnerPackageForm()">Batal</button></div></form></div>';
+ host.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function editPartnerPackage(id){showPartnerPackageForm(id)}
+function cancelPartnerPackageForm(){packageEditingId=null;const host=document.getElementById('partnerPackageFormHost');if(host)host.innerHTML=''}
+function savePartnerPackage(e){
+ e.preventDefault();
+ const name=document.getElementById('ppName').value.trim(),duration=document.getElementById('ppDuration').value.trim(),price=Number(document.getElementById('ppPrice').value),capacity=Number(document.getElementById('ppCapacity').value),departure=document.getElementById('ppDeparture').value,route=document.getElementById('ppRoute').value.trim(),status=document.getElementById('ppStatus').value;
+ if(!name||!duration||!route||!departure||!Number.isFinite(price)||price<=0||!Number.isInteger(capacity)||capacity<1){showToast('Periksa kembali data paket.');return}
+ const old=packageEditingId?partnerPackages.find(p=>p.id===packageEditingId):null;
+ const data={...(old||{}),id:old?.id||('partner-'+Date.now()),name,duration,days:Number.parseInt(duration,10)||1,price,capacity,departure,route,status,category:old?.category||'Asia',country:old?.country||'',tag:old?.tag||'PARTNER',image:old?.image||tours[0]?.image||'',desc:old?.desc||route};
+ if(old)partnerPackages=partnerPackages.map(p=>p.id===old.id?data:p);else partnerPackages.unshift(data);
+ if(!persistPartnerPackages())return;
+ cancelPartnerPackageForm();renderPartner();showToast(old?'Paket demo berhasil diperbarui.':'Paket demo berhasil ditambahkan.');
+}
+function togglePartnerPackageStatus(id){
+ const p=partnerPackages.find(x=>x.id===id);if(!p)return;
+ p.status=p.status==='Published'?'Archived':'Published';
+ if(!persistPartnerPackages())return;
+ renderPartner();showToast('Status paket demo diubah menjadi '+p.status+'.');
+}
+function partnerBookingTable(rows){
+ return '<table id="partnerBookingsTable"><thead><tr><th>Kode</th><th>Paket</th><th>Pelanggan</th><th>Peserta</th><th>Keberangkatan</th><th>Total</th><th>Pembayaran</th><th>Status Booking</th><th>Aksi</th></tr></thead><tbody>'+rows.map(b=>'<tr><td>'+escapeHtml(b.id)+'</td><td>'+escapeHtml(b.packageName)+'</td><td>'+escapeHtml(b.customer)+'</td><td>'+Number(b.pax)+'</td><td>'+escapeHtml(b.departure||'-')+'</td><td>'+money(b.total)+'</td><td>'+partnerStatus(b.payment)+'</td><td>'+partnerStatus(b.status)+'</td><td><button class="btn outline small" onclick="advancePartnerBooking(\''+escapeJs(b.id)+'\')">Ubah Status</button></td></tr>').join('')+'</tbody></table>';
+}
+function advancePartnerBooking(id){
+ const b=partnerBookings.find(x=>x.id===id);if(!b)return;
+ const next={Pending:'Confirmed',Confirmed:'Cancelled',Cancelled:'Pending'};const choices={Pending:'Konfirmasi booking ini?',Confirmed:'Batalkan booking demo ini?',Cancelled:'Aktifkan kembali booking demo ini?'};
+ if(!confirm(choices[b.status]||'Ubah status booking demo?'))return;
+ b.status=next[b.status]||'Pending';if(b.status==='Cancelled')b.payment=b.payment==='Paid'?'Paid':b.payment;
+ if(!persistPartnerBookings())return;
+ renderPartner();showToast('Status booking demo diperbarui: '+b.status);
+}
+function previewPartnerInvoice(){
+ const box=document.getElementById('partnerInvoicePreview');if(!box)return;
+ const pax=partnerBookings.filter(b=>b.status!=='Cancelled').reduce((n,b)=>n+Number(b.pax||0),0),usage=billingRate*pax,total=billingBase+usage;
+ box.innerHTML='<div class="panel" style="margin-top:14px"><h3>INVOICE DEMO · NINJATRAVEL</h3><p>Nomor: INV-DEMO-'+new Date().toISOString().slice(0,7).replace('-','')+'</p><p>Biaya dasar: '+money(billingBase)+'</p><p>Penggunaan '+pax+' peserta: '+money(usage)+'</p><h2>Total estimasi: '+money(total)+'</h2><button class="btn outline small" onclick="window.print()">Cetak / Simpan PDF</button></div>';
+}
 function tourTable(rows){return '<table><thead><tr><th>Paket</th><th>Durasi</th><th>Harga/Orang</th><th>Status</th><th>Aksi</th></tr></thead><tbody>'+rows.map(t=>'<tr><td>'+t.name+'</td><td>'+t.duration+'</td><td>'+money(t.price)+'</td><td><span class="status active">Published</span></td><td><button class="btn outline small" onclick="openTour(\''+t.id+'\')">Preview</button></td></tr>').join('')+'</tbody></table>'}
 document.querySelectorAll('#mainNav a').forEach(a=>a.addEventListener('click',closeMainNav));
 
