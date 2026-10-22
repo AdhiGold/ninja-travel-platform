@@ -579,5 +579,50 @@ function toggleNinjaAI(){const p=document.getElementById('ninjaAI');const open=!
 function askNinjaAI(q){const input=document.getElementById('ninjaAIInput');input.value=q;sendNinjaAI(new Event('submit',{cancelable:true}));}
 function sendNinjaAI(e){if(e&&e.preventDefault)e.preventDefault();const input=document.getElementById('ninjaAIInput');const q=(input.value||'').trim();if(!q)return;const box=document.getElementById('ninjaAIMessages');const user=document.createElement('div');user.className='ai-message user';user.textContent=q;box.appendChild(user);input.value='';const low=q.toLowerCase();let answer='Aku bisa bantu mencari paket, memberi gambaran destinasi, dan menjelaskan fasilitas. Coba sebutkan destinasi atau kisaran budget kamu ya!';if(low.includes('china')){const t=tours.find(x=>x.id==='china');answer='🇨🇳 Rekomendasi China: '+t.duration+' — '+money(t.price)+' per orang (harga demo). Rute '+t.route+'. Mau aku bantu siapkan pertanyaan untuk tim travel?';}else if(low.includes('10 juta')||low.includes('dibawah 10')||low.includes('di bawah 10')){const found=tours.filter(t=>t.price<10000000).slice(0,4);answer='💰 Pilihan paket demo di bawah Rp10 juta:\n'+found.map(t=>'• '+t.name+' — '+money(t.price)+' ('+t.duration+')').join('\n')+'\nHarga dan ketersediaan perlu dikonfirmasi ke tim NinjaTravel.';}else if(low.includes('fasilitas')){answer='🧳 Fasilitas bisa berbeda per paket. Biasanya detail yang perlu dicek: tiket pesawat, hotel, makan, transportasi wisata, guide, bagasi, pajak bandara, dan biaya opsional. Sebutkan paket yang kamu minati agar tim dapat mengonfirmasi detailnya.';}else if(low.includes('jepang')||low.includes('japan')){const t=tours.find(x=>x.id==='japan');answer='🇯🇵 Paket Jepang demo: '+t.duration+' — '+money(t.price)+' per orang. Rute '+t.route+'. Harga ini hanya contoh pada prototype.';}else if(low.includes('bali')){const t=tours.find(x=>x.id==='bali');answer='🌴 Paket Bali demo: '+t.duration+' — '+money(t.price)+' per orang. Rute '+t.route+'. Harga dan jadwal aktual perlu dikonfirmasi.';}else if(low.includes('halo')||low.includes('hai')){answer='Halo juga, Traveler! 👋 Kamu ingin liburan ke mana dan kisaran budget per orang berapa?';}const bot=document.createElement('div');bot.className='ai-message bot';bot.textContent=answer;box.appendChild(bot);box.scrollTop=box.scrollHeight;}
 </script>
+
+<style>
+#demoPresenterDock{position:fixed;right:18px;bottom:18px;z-index:9998;font-family:inherit}
+#demoPresenterToggle{border:0;border-radius:999px;padding:13px 18px;background:#162a5a;color:#fff;font-weight:800;box-shadow:0 12px 30px #10234b35;cursor:pointer}
+#demoPresenterPanel{display:none;width:min(360px,calc(100vw - 28px));max-height:75vh;overflow:auto;margin-bottom:10px;padding:18px;border:1px solid #dbe5f2;border-radius:18px;background:#fff;color:#10234b;box-shadow:0 20px 55px #10234b30}
+#demoPresenterPanel.open{display:block}
+#demoPresenterPanel h3{margin:0 0 6px;font-size:17px}
+#demoPresenterPanel p{font-size:12px;line-height:1.55;color:#60728e;margin:0 0 12px}
+.demo-presenter-step{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;padding:11px;margin:7px 0;border:1px solid #e3edf8;border-radius:12px;background:#f8fbff;color:#10234b;cursor:pointer}
+.demo-presenter-step:hover{border-color:#168bfa;background:#eef7ff}
+.demo-presenter-step b{display:block;font-size:13px}
+.demo-presenter-step small{display:block;color:#60728e;margin-top:3px;line-height:1.4}
+.demo-presenter-num{flex:0 0 25px;width:25px;height:25px;border-radius:8px;background:#e2efff;color:#126bd0;display:grid;place-items:center;font-weight:800}
+#demoPresenterPanel .demo-presenter-foot{border-top:1px solid #e3edf8;padding-top:10px;margin-top:10px}
+@media(max-width:600px){#demoPresenterDock{right:12px;bottom:12px}#demoPresenterToggle{padding:11px 14px}}
+</style>
+<div id="demoPresenterDock">
+  <div id="demoPresenterPanel" role="dialog" aria-label="Panduan presentasi NinjaTravel">
+    <h3>Panduan Demo NinjaTravel</h3>
+    <p>Jalankan alur presentasi dengan satu klik. Semua transaksi dan status pada panel ini adalah simulasi lokal.</p>
+    <button class="demo-presenter-step" onclick="demoPresenterGo('home')"><span class="demo-presenter-num">1</span><span><b>Website & katalog</b><small>Tunjukkan halaman publik dan paket wisata.</small></span></button>
+    <button class="demo-presenter-step" onclick="demoPresenterGo('portal')"><span class="demo-presenter-num">2</span><span><b>Portal akun</b><small>Jelaskan perbedaan jalur Partner, Member, dan Admin.</small></span></button>
+    <button class="demo-presenter-step" onclick="demoPresenterGo('partner-overview')"><span class="demo-presenter-num">3</span><span><b>Partner Dashboard</b><small>Ringkasan booking, pelanggan, dan paket.</small></span></button>
+    <button class="demo-presenter-step" onclick="demoPresenterGo('partner-revenue')"><span class="demo-presenter-num">4</span><span><b>Pendapatan & Settlement</b><small>Contoh penjualan, komisi, laporan dan ekspor.</small></span></button>
+    <button class="demo-presenter-step" onclick="demoPresenterGo('partner-billing')"><span class="demo-presenter-num">5</span><span><b>Invoice Biaya Platform</b><small>Preview invoice dan simulasi pengajuan bukti transfer.</small></span></button>
+    <button class="demo-presenter-step" onclick="demoPresenterGo('admin-billing')"><span class="demo-presenter-num">6</span><span><b>Core Admin — Validasi</b><small>Periksa antrean pembayaran, validasi atau minta perbaikan.</small></span></button>
+    <div class="demo-presenter-foot"><p><b>Catatan presenter:</b> unggah bukti hanya menyimpan nama file di browser. Jangan menyebutnya sebagai pembayaran nyata.</p></div>
+  </div>
+  <button id="demoPresenterToggle" type="button" onclick="toggleDemoPresenter()" aria-expanded="false">☷ Panduan Demo</button>
+</div>
+<script>
+function toggleDemoPresenter(){const panel=document.getElementById('demoPresenterPanel'),btn=document.getElementById('demoPresenterToggle');const open=!panel.classList.contains('open');panel.classList.toggle('open',open);btn.setAttribute('aria-expanded',String(open));}
+function demoPresenterGo(step){
+ const panel=document.getElementById('demoPresenterPanel');
+ if(step==='home'){showView('home');}
+ else if(step==='portal'){showView('portal');}
+ else if(step==='partner-overview'){showView('partner-dashboard');setPartnerView('overview');}
+ else if(step==='partner-revenue'){showView('partner-dashboard');setPartnerView('revenue');}
+ else if(step==='partner-billing'){showView('partner-dashboard');setPartnerView('billing');}
+ else if(step==='admin-billing'){showView('admin-dashboard');activeAdmin='billing';renderAdmin();}
+ panel.classList.remove('open');document.getElementById('demoPresenterToggle').setAttribute('aria-expanded','false');
+ showToast('Mode presentasi: '+({'home':'Website & katalog','portal':'Portal akun','partner-overview':'Partner Dashboard','partner-revenue':'Pendapatan & Settlement','partner-billing':'Invoice Biaya Platform','admin-billing':'Core Admin — Validasi'}[step]||'Demo')+'. Data bersifat simulasi.');
+}
+</script>
+
 </body>
 </html>
